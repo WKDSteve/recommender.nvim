@@ -164,4 +164,23 @@ return function(H)
       vim.bo[buf].buftype = ""
     end
   end
+
+  -- replace_arg: one :Replace positional, whatever the chain contains ---------
+  do
+    local replace_arg = fk._internal.replace_arg
+    H.eq(replace_arg("foo(a, b)"), '"foo(a, b)"', "a chain with a space is one quoted argument")
+    H.eq(replace_arg('x["k"]'), '"x[\\"k\\"]"', "double quotes are escaped")
+    H.eq(replace_arg("a\\b"), '"a\\\\b"', "a backslash is doubled")
+
+    -- Against replacer.nvim's own tokenizer when it is around: the raw chain must
+    -- come back as the first of exactly three tokens (it pins the watcher's `old`).
+    local ok, command = pcall(require, "replacer.command")
+    if ok and type(command.tokenize) == "function" then
+      for _, chain in ipairs({ "foo(a, b)", 'x["k y"]', "a\\b c", "'q' w", '"lead" x', "tail\\", "plain" }) do
+        local tokens = command.tokenize(replace_arg(chain) .. " v %")
+        H.eq(#tokens, 3, "three positionals for chain " .. vim.inspect(chain))
+        H.eq(tokens[1], chain, "tokenizer returns the raw chain " .. vim.inspect(chain))
+      end
+    end
+  end
 end

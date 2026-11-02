@@ -26,6 +26,18 @@ local schedule = vim.schedule
 -- ── helpers ────────────────────────────────────────────────────────────────
 
 ---@internal
+---A value as one double-quoted `:Replace` argument. The command API joins
+---`args` with plain spaces and :Replace tokenizes that string again, so a chain
+---with a space (`foo(a, b)`) would otherwise arrive as several positionals.
+---Inside the quotes only `\` and `"` are escaped; the tokenizer undoes exactly
+---that, which also keeps `request.old` equal to the raw chain.
+---@param s string
+---@return string
+local function replace_arg(s)
+  return '"' .. s:gsub("\\", "\\\\"):gsub('"', '\\"') .. '"'
+end
+
+---@internal
 ---Returns true only for normal, modifiable, non-special windows.
 ---@param winid integer
 ---@return boolean
@@ -116,7 +128,7 @@ function M.make_on_select(state)
           -- embedded newline into separate Ex commands, each parsed and run
           -- on its own. `args` reaches :Replace as already-split values
           -- instead, with no command-line parsing involved.
-          vim.cmd({ cmd = "Replace", args = { item.chain, var_name, "%" } })
+          vim.cmd({ cmd = "Replace", args = { replace_arg(item.chain), var_name, "%" } })
         else
           api.nvim_put({ item.alias }, "l", false, true)
         end
@@ -279,6 +291,7 @@ end
 M._internal = {
   is_normal_window = is_normal_window,
   find_target_window = find_target_window,
+  replace_arg = replace_arg,
 }
 
 return M

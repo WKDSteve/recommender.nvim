@@ -86,14 +86,14 @@ return function(H)
   -- Assignments drive :Replace, and the alias line is left for the WinClosed hook ---------
   local calls, inserted = pick(regex, true)
   H.eq(#calls, 1, "a regex suggestion (local x = chain) dispatches :Replace once")
-  H.eq(calls[1][1], "vim.api", "... on the chain")
+  H.eq(calls[1][1], '"vim.api"', "... on the chain, as one quoted :Replace argument")
   H.eq(calls[1][2], "api", "... with the alias name as the replacement")
   H.falsy(inserted, "... and the alias line waits for the replace prompt to close")
   H.eq(vim.tbl_count(last_state), 1, "... and picking leaves no state of its own behind (no _pending_insert)")
 
   calls, inserted = pick(python, true)
   H.eq(#calls, 1, "a python suggestion (x = chain) dispatches :Replace once")
-  H.eq(calls[1][1], "json.dumps", "... on the chain")
+  H.eq(calls[1][1], '"json.dumps"', "... on the chain, as one quoted :Replace argument")
   H.eq(calls[1][2], "dumps", "... with the alias name as the replacement")
   H.falsy(inserted, "... and the alias line waits for the replace prompt to close")
 
