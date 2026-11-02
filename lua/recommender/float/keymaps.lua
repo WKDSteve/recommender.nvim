@@ -108,7 +108,7 @@ function M.make_on_select(state)
           -- have reinserted that same alias a second time.
           local buf = api.nvim_win_get_buf(target_win)
           local snapshot = api.nvim_buf_get_lines(buf, 0, -1, false)
-          require("recommender.float.autocmds").register_replace_finish(target_win, snapshot, item.alias)
+          require("recommender.float.autocmds").register_replace_finish(target_win, snapshot, item.alias, { old = item.chain })
 
           -- List form, not a formatted string (SEC-35): `item.chain` is raw
           -- buffer text -- the treesitter analyzer can hand back a chain

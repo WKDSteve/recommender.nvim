@@ -1,6 +1,11 @@
 ---@module 'recommender.float.autocmds'
 ---Temporary autocmds used by replace-mode to detect when :Replace finishes.
 ---
+---Preferred path: replacer.nvim's public `User ReplacerDone` event (fired once
+---when a run is over, with `applied`); the alias is inserted when the run that
+---was started for it applied something. The rest of this header describes the
+---fallback heuristic for a replacer.nvim without that event.
+---
 ---:Replace (replacer.nvim) opens a picker over the matches; the alias line is
 ---inserted once that picker's window closes and the target buffer changed.
 ---Both picker backends of replacer.nvim are recognised by the filetype of the
@@ -106,12 +111,15 @@ end
 ---- no picker seen within `start_timeout_ms` and buffer unchanged -> watcher
 ---  removed and a warning names why nothing was inserted (no matches, or a
 ---  picker this plugin does not recognise)
+---
+---This is the fallback for a replacer.nvim without the public run-end signal;
+---`M.register_replace_finish` prefers the signal (see `watch_done_signal`).
 ---@param target_win integer  Window to insert the alias into
 ---@param buf_snapshot string[]  Buffer lines before :Replace ran
 ---@param alias_text string  Alias line to insert if the buffer changed
 ---@param opts? { start_timeout_ms?: integer, on_unrecognised?: fun(msg: string) }
 ---@return nil
-function M.register_replace_finish(target_win, buf_snapshot, alias_text, opts)
+function M.register_replace_heuristic(target_win, buf_snapshot, alias_text, opts)
   opts = opts or {}
   local group = autocmd.group("RecommenderNvimReplaceInsert", true)
   current_gen = current_gen + 1
@@ -193,6 +201,75 @@ function M.register_replace_finish(target_win, buf_snapshot, alias_text, opts)
       require("recommender.util.notify").create("[recommender]").warn(msg)
     end
   end, opts.start_timeout_ms or M.START_TIMEOUT_MS)
+end
+
+---Name of replacer.nvim's public run-end event (`User ReplacerDone`), or nil
+---when the installed replacer.nvim does not publish one.
+---@return string|nil
+function M.done_event()
+  local ok, replacer = pcall(require, "replacer")
+  if ok and type(replacer) == "table" and type(replacer.DONE_EVENT) == "string" then
+    return replacer.DONE_EVENT
+  end
+  return nil
+end
+
+---@internal
+---Signal path: insert the alias when replacer reports that the run it was
+---asked for is over and wrote something. No window or tick heuristics, so the
+---fzf-lua split, the `<C-f>` filter and every reopen are covered by the
+---session end replacer itself decides.
+---
+---`opts.old` (the searched text handed to :Replace) pins the watcher to its
+---own run: an event of an unrelated :Replace is ignored. A watcher whose run
+---never reports (a picker replacer cannot observe, e.g. fzf-tmux) stays
+---armed only until the next watcher supersedes it.
+---@param event string
+---@param target_win integer
+---@param alias_text string
+---@param opts { old?: string }
+---@return nil
+local function watch_done_signal(event, target_win, alias_text, opts)
+  local group = autocmd.group("RecommenderNvimReplaceInsert", true)
+  current_gen = current_gen + 1
+  local gen = current_gen
+
+  autocmd.create("User", function(args)
+    if gen ~= current_gen then
+      return
+    end
+    local data = type(args.data) == "table" and args.data or {}
+    if opts.old ~= nil and data.old ~= opts.old then
+      return
+    end
+    pcall(api.nvim_del_augroup_by_id, group)
+    if data.applied ~= true or not api.nvim_win_is_valid(target_win) then
+      return
+    end
+    api.nvim_set_current_win(target_win)
+    api.nvim_put({ alias_text }, "l", false, true)
+  end, { group = group, pattern = event })
+end
+
+---Arm the one-shot watcher that inserts `alias_text` into `target_win` once
+---the :Replace it is paired with has applied something.
+---
+---Uses replacer.nvim's public `User ReplacerDone` event when the installed
+---replacer has it (or `opts.signal == true`); otherwise falls back to the
+---window/tick heuristic of `register_replace_heuristic`. `opts.signal = false`
+---forces the heuristic.
+---@param target_win integer  Window to insert the alias into
+---@param buf_snapshot string[]  Buffer lines before :Replace ran (heuristic path)
+---@param alias_text string  Alias line to insert
+---@param opts? { start_timeout_ms?: integer, on_unrecognised?: fun(msg: string), signal?: boolean, old?: string }
+---@return nil
+function M.register_replace_finish(target_win, buf_snapshot, alias_text, opts)
+  opts = opts or {}
+  local event = opts.signal ~= false and (M.done_event() or (opts.signal and "ReplacerDone")) or nil
+  if event then
+    return watch_done_signal(event, target_win, alias_text, opts)
+  end
+  return M.register_replace_heuristic(target_win, buf_snapshot, alias_text, opts)
 end
 
 return M

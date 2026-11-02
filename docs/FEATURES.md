@@ -177,6 +177,10 @@ assignment (the `regex`, `treesitter` and `python` analyzers); the
 
 Requires a `:Replace` user command from another plugin —
 [replacer.nvim](https://github.com/WKDSteve/replacer.nvim) provides one.
+With a replacer.nvim that publishes `User ReplacerDone` (see its `docs/api.md`)
+recommender uses that signal instead: the alias goes in when the run started
+for it reports `applied`, whatever picker or layout was used. The window
+detection below is the fallback for an older replacer.nvim.
 Detection of "the replace finished" is event-driven: a one-shot `WinClosed`
 autocmd watches for the picker window of either replacer.nvim backend
 closing (Telescope's `TelescopePrompt`, fzf-lua's `fzf` terminal), checks the
