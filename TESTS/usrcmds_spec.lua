@@ -190,4 +190,53 @@ return function(H)
     vim.o.path = saved_path
     vim.fn.delete(root, "rf")
   end
+
+  -- resolve_request: precedence of flags, tokens and config -------------------
+  do
+    local resolve_request = usrcmds._internal.resolve_request
+    local cfg = { analyzer = "regex", threshold = 3 }
+
+    local req = resolve_request(cfg, false, {}, false, nil)
+    H.eq(req.analyzer_name, "regex", "defaults: the configured analyzer")
+    H.eq(req.scope, "buffer", "defaults: buffer scope")
+    H.eq(req.threshold, 3, "defaults: the configured threshold")
+    H.eq(req.replace_mode, false, "defaults: replace mode off")
+
+    req = resolve_request(cfg, true, { "python", "path", "9" }, false, nil)
+    H.eq(
+      vim.inspect({ req.analyzer_name, req.scope, req.threshold, req.replace_mode }),
+      vim.inspect({ "python", "path", 9, true }),
+      "tokens override analyzer, scope and threshold in any slot"
+    )
+
+    req = resolve_request(cfg, false, { "7" }, true, 2)
+    H.eq(
+      vim.inspect({ req.scope, req.threshold }),
+      vim.inspect({ "cwd", 2 }),
+      "--cwd selects cwd scope; --threshold wins over a bare number"
+    )
+
+    req = resolve_request(cfg, false, { "line" }, true, nil)
+    H.eq(
+      vim.inspect({ req.scope, req.threshold }),
+      vim.inspect({ "line", 1 }),
+      "an explicit scope beats --cwd; line scope defaults to threshold 1"
+    )
+
+    req = resolve_request(cfg, false, { "line", "4" }, false, nil)
+    H.eq(req.threshold, 4, "line scope keeps an explicitly typed threshold")
+
+    req = resolve_request({}, false, {}, false, nil)
+    H.eq(req.analyzer_name, "regex", "a partial setup falls back to the regex analyzer")
+
+    local saved = vim.notify
+    local seen = {}
+    vim.notify = function(msg)
+      seen[#seen + 1] = msg
+    end
+    req = resolve_request(cfg, false, { "bogus" }, false, nil)
+    vim.notify = saved
+    H.falsy(req, "an unrecognized token yields no request")
+    H.ok(#seen == 1 and seen[1]:find("bogus", 1, true) ~= nil, "...and one notification naming it")
+  end
 end

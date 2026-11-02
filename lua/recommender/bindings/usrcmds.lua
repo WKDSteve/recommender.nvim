@@ -209,17 +209,24 @@ end
 -- Per-buffer ignore state: { [bufnr] = { [chain] = true } }
 local ignore_by_buf = {}
 
+---What one `:Recommender` invocation asks for, after argument resolution.
+---@class Recommender.Request
+---@field analyzer_name string
+---@field scope string  "buffer"|"path"|"cwd"|"cfile"|"line"
+---@field threshold integer
+---@field replace_mode boolean
+
 ---@internal
----Run one `:Recommender` invocation: resolve analyzer/threshold/scope,
----toggle the float if already open, and (re)build the per-buffer state
----whose `refresh()` drives the suggestion list.
+---Step 1 of an invocation: resolve analyzer, scope and threshold from the
+---positional tokens and the flags. Pure (no UI besides the error notification
+---for unrecognized tokens), so the precedence rules are testable on their own.
 ---@param cfg Recommender.Config
 ---@param replace_mode boolean
 ---@param pos_args string[]
 ---@param cwd_flag boolean  `-c`/`--cwd`; backward-compatible alias for `scope = "cwd"`, overridden by an explicit scope positional.
 ---@param flag_threshold integer|nil  `--threshold=N`; wins over a positional number.
----@return nil
-local function execute(cfg, replace_mode, pos_args, cwd_flag, flag_threshold)
+---@return Recommender.Request|nil request  nil after a notified usage error
+local function resolve_request(cfg, replace_mode, pos_args, cwd_flag, flag_threshold)
   local pos_analyzer, pos_threshold, pos_scope, pos_unrecognized = classify_pos_args(pos_args)
   if #pos_unrecognized > 0 then
     -- A typo here must not behave like "no argument" (ERR-10): silently
@@ -233,7 +240,7 @@ local function execute(cfg, replace_mode, pos_args, cwd_flag, flag_threshold)
         table.concat(SCOPE_NAMES, ", ")
       )
     )
-    return
+    return nil
   end
   -- `or "regex"` mirrors config/DEFAULTS.lua: the merge always fills
   -- `analyzer`, but the option type no longer promises it now that a
@@ -252,6 +259,282 @@ local function execute(cfg, replace_mode, pos_args, cwd_flag, flag_threshold)
   -- scope silently report "no suggestions" every time. Default to 1 unless
   -- the caller explicitly typed a threshold.
   local threshold = explicit_threshold or (scope == "line" and 1) or cfg.threshold
+  return {
+    analyzer_name = analyzer_name,
+    scope = scope,
+    threshold = threshold,
+    replace_mode = replace_mode,
+  }
+end
+
+---@internal
+---Step 3 (shared tail) of an invocation, once `all` is known: filter ignored
+---entries, then open the float (or report empty). Called synchronously for
+---buffer/cfile/line scope, and from the async scan's `on_done` for cwd/path.
+---@param state table
+---@param cfg Recommender.Config
+---@param req Recommender.Request
+---@param all {chain:string, count:integer, alias:string}[]
+---@param skipped integer|nil  files that could not be read (cwd/path/cfile scope only)
+local function present(state, cfg, req, all, skipped)
+  state.visible = {}
+  for _, s in ipairs(all) do
+    if not state.ignored[s.chain] then
+      state.visible[#state.visible + 1] = s
+    end
+  end
+
+  if #state.visible == 0 then
+    local msg = ("No suggestions (threshold: %d)"):format(req.threshold)
+    if skipped and skipped > 0 then
+      -- "no suggestions" and "couldn't read the scan" must not look
+      -- identical (ERR-11) -- a clean scan and a permission-restricted
+      -- one otherwise both end in this exact same sentence.
+      msg = msg .. (" — %d file%s could not be read"):format(skipped, skipped == 1 and "" or "s")
+    end
+    notify.info(msg)
+    rendering.close()
+    return
+  end
+
+  local title = ("Recommender: %d suggestion%s"):format(#state.visible, #state.visible == 1 and "" or "s")
+  if SCOPE_LABEL[req.scope] then
+    title = title .. ("  [%s]"):format(SCOPE_LABEL[req.scope])
+  end
+  if req.replace_mode then
+    title = title .. "  [REPLACE MODE]"
+  end
+
+  local surf = rendering.open(state.visible, title, state._restore_index, cfg.float_layout, keymaps_m.make_on_select(state))
+
+  if surf then
+    keymaps_m.attach_extra(surf.bufnr, state, cfg.float_keymaps)
+  end
+end
+
+---@internal
+---Run `body`, reporting any error the same way regardless of which scope
+---branch raised it -- the sync ones, and the async cwd/path one again from its
+---own `on_done` (the outer `pcall` around *that* call has long since returned
+---by the time it fires).
+---@param body fun()
+local function guarded(body)
+  local ok, err = pcall(body)
+  if not ok then
+    notify.error("Error: " .. tostring(err))
+    rendering.close()
+  end
+end
+
+---@internal
+---Step 2, cwd/path scope: walk the directory and read the files, both async,
+---with a `config.progress_style` indicator tracking the whole thing -- see
+---`project.lua`. The walk is usually the slower, more variable half (a cold
+---directory-entry cache, or per-open AV/EDR scanning on Windows), so it gets
+---its own indicator phase rather than only covering the read.
+---
+---A newer scan (another invocation, or an ignore/un-ignore-triggered refresh)
+---supersedes whatever is still running -- see the module-level
+---`_scan_generation` comment near the top of this file.
+---@param state table
+---@param cfg Recommender.Config
+---@param req Recommender.Request
+---@param analyzer table
+---@return nil
+local function scan_tree(state, cfg, req, analyzer)
+  local root
+  if req.scope == "cwd" then
+    root = vim.fn.getcwd()
+  else
+    local bufname = api.nvim_buf_get_name(state.source_bufnr)
+    if bufname == "" then
+      notify.error("path scope requires the current buffer to have a file path")
+      rendering.close()
+      return
+    end
+    root = vim.fn.fnamemodify(bufname, ":p:h")
+  end
+
+  if _active_progress_handle then
+    _active_progress_handle:cancel("superseded by a new scan")
+  end
+  _scan_generation = _scan_generation + 1
+  local my_generation = _scan_generation
+
+  local handle = progress.create(cfg.progress_style)
+  _active_progress_handle = handle
+  if handle then
+    handle:update({ text = "scanning directories" })
+    -- The "float"/"kit" progress styles wire <Esc> to request_cancel();
+    -- bumping the generation here is what actually stops the walk/read
+    -- from continuing, not just what hides the indicator.
+    handle:on_cancel(function()
+      _scan_generation = _scan_generation + 1
+    end)
+  end
+
+  local function is_cancelled()
+    return my_generation ~= _scan_generation
+  end
+
+  local function start_read(paths)
+    if handle then
+      handle:update({ text = ("scanning %d files"):format(#paths), current = 0, total = #paths })
+    end
+
+    project.read_lines_async(paths, {
+      is_cancelled = is_cancelled,
+      on_progress = function(done, scanned_total)
+        if handle then
+          handle:update({
+            text = ("%d/%d files"):format(done, scanned_total),
+            current = done,
+            total = scanned_total,
+          })
+        end
+      end,
+      on_done = function(lines, skipped)
+        if _active_progress_handle == handle then
+          _active_progress_handle = nil
+        end
+        if handle then
+          local finish_text = ("scanned %d files"):format(#paths)
+          if skipped and skipped > 0 then
+            finish_text = finish_text .. (" (%d unreadable)"):format(skipped)
+          end
+          handle:finish(finish_text)
+        end
+        -- Belt-and-braces: read_lines_async already stops calling
+        -- batches (and never calls on_done at all) once is_cancelled()
+        -- turns true -- kept so a future change to that scheduling
+        -- can't silently open a float behind whatever superseded it.
+        if is_cancelled() then
+          return
+        end
+        guarded(function()
+          present(state, cfg, req, analyzer.analyze(req.threshold, state.custom_aliases, state.blacklist, lines), skipped)
+        end)
+      end,
+    })
+  end
+
+  project.find_files_async(req.analyzer_name, root, cfg.cwd_ignore, cfg.cwd_max_files, {
+    is_cancelled = is_cancelled,
+    on_progress = function(dirs_scanned, files_found)
+      if handle then
+        handle:update({ text = ("scanning directories (%d found, %d files)"):format(dirs_scanned, files_found) })
+      end
+    end,
+    on_done = function(paths, truncated)
+      if #paths == 0 then
+        if _active_progress_handle == handle then
+          _active_progress_handle = nil
+        end
+        if handle then
+          handle:cancel("no matching files found")
+        end
+        notify.info(("No matching files found under %s"):format(root))
+        rendering.close()
+        return
+      end
+      if truncated then
+        notify.warn(("%s scan capped at %d files (config.cwd_max_files)"):format(req.scope, cfg.cwd_max_files))
+      end
+      start_read(paths)
+    end,
+  })
+end
+
+---@internal
+---Step 2: collect the suggestions for `req` from the scope's source and hand
+---them to `present`. Re-runnable (the ignore/refresh keymaps call it again).
+---Resolved inside `guarded()`, not by the caller: `get_analyzer` raises for an
+---unknown name, and that must be reported the same friendly way as every other
+---failure here (ERR-22), not escape `vim.schedule` as a raw, unhandled error.
+---@param state table
+---@param cfg Recommender.Config
+---@param req Recommender.Request
+---@return nil
+local function collect(state, cfg, req)
+  guarded(function()
+    local analyzer = get_analyzer(req.analyzer_name)
+
+    if not (state.source_bufnr and api.nvim_buf_is_valid(state.source_bufnr)) then
+      notify.warn("Source buffer is no longer valid")
+      rendering.close()
+      return
+    end
+
+    if req.scope == "buffer" then
+      local all, analyzer_ok
+      api.nvim_buf_call(state.source_bufnr, function()
+        all, analyzer_ok = analyzer.analyze(req.threshold, state.custom_aliases, state.blacklist)
+      end)
+      if analyzer_ok == false then
+        -- Only the treesitter analyzer ever reports this (the regex-based
+        -- ones have no failure mode to report). "no suggestions" and "the
+        -- analyzer couldn't run at all" (no Lua parser installed, a parse
+        -- failure, ...) must not look identical (ERR-11) -- both would
+        -- otherwise reach `present()` as the same empty `all`.
+        notify.warn(("%s analyzer could not analyze this buffer — see :checkhealth recommender"):format(req.analyzer_name))
+        rendering.close()
+        return
+      end
+      present(state, cfg, req, all)
+      return
+    end
+
+    if not project.supports_cwd(req.analyzer_name) then
+      notify.error(
+        ("%s scope isn't supported for analyzer %q — use one of: %s"):format(
+          req.scope,
+          req.analyzer_name,
+          NON_BUFFER_CAPABLE_ANALYZERS
+        )
+      )
+      rendering.close()
+      return
+    end
+
+    if req.scope == "cwd" or req.scope == "path" then
+      scan_tree(state, cfg, req, analyzer)
+      return
+    end
+
+    local lines, skipped
+    if req.scope == "cfile" then
+      local path, path_err = resolve_cfile(state.cfile_raw, state.source_bufnr)
+      if not path then
+        -- The value and the message share the call: a failure without a
+        -- message would otherwise notify `nil`.
+        notify.error(path_err or "no readable file under the cursor")
+        rendering.close()
+        return
+      end
+      lines, skipped = project.read_lines({ path })
+    else -- "line"
+      lines = { state.cursor_line_text or "" }
+    end
+
+    present(state, cfg, req, analyzer.analyze(req.threshold, state.custom_aliases, state.blacklist, lines), skipped)
+  end)
+end
+
+---@internal
+---Run one `:Recommender` invocation: resolve the request, toggle the float if
+---already open, and (re)build the per-buffer state whose `refresh()` drives
+---the suggestion list.
+---@param cfg Recommender.Config
+---@param replace_mode boolean
+---@param pos_args string[]
+---@param cwd_flag boolean  `-c`/`--cwd`; backward-compatible alias for `scope = "cwd"`, overridden by an explicit scope positional.
+---@param flag_threshold integer|nil  `--threshold=N`; wins over a positional number.
+---@return nil
+local function execute(cfg, replace_mode, pos_args, cwd_flag, flag_threshold)
+  local req = resolve_request(cfg, replace_mode, pos_args, cwd_flag, flag_threshold)
+  if not req then
+    return
+  end
 
   -- Toggle: close if already open
   if rendering.is_open() then
@@ -278,242 +561,7 @@ local function execute(cfg, replace_mode, pos_args, cwd_flag, flag_threshold)
   }
 
   function state.refresh()
-    -- Resolved inside `guarded()` below, not here: `get_analyzer` raises for
-    -- an unknown name, and that must be reported the same friendly way as
-    -- every other failure in this function (ERR-22), not escape
-    -- `vim.schedule` as a raw, unhandled error.
-    ---@type table
-    local analyzer
-
-    ---@internal
-    ---Shared tail once `all` is known: filter ignored entries, then open (or
-    ---report empty). Called synchronously for buffer/cfile/line scope, and
-    ---from `project.read_lines_async`'s `on_done` for cwd/path.
-    ---@param all {chain:string, count:integer, alias:string}[]
-    ---@param skipped integer|nil  files that could not be read (cwd/path/cfile scope only)
-    local function finish(all, skipped)
-      state.visible = {}
-      for _, s in ipairs(all) do
-        if not state.ignored[s.chain] then
-          state.visible[#state.visible + 1] = s
-        end
-      end
-
-      if #state.visible == 0 then
-        local msg = ("No suggestions (threshold: %d)"):format(threshold)
-        if skipped and skipped > 0 then
-          -- "no suggestions" and "couldn't read the scan" must not look
-          -- identical (ERR-11) -- a clean scan and a permission-restricted
-          -- one otherwise both end in this exact same sentence.
-          msg = msg .. (" — %d file%s could not be read"):format(skipped, skipped == 1 and "" or "s")
-        end
-        notify.info(msg)
-        rendering.close()
-        return
-      end
-
-      local title = ("Recommender: %d suggestion%s"):format(#state.visible, #state.visible == 1 and "" or "s")
-      if SCOPE_LABEL[scope] then
-        title = title .. ("  [%s]"):format(SCOPE_LABEL[scope])
-      end
-      if replace_mode then
-        title = title .. "  [REPLACE MODE]"
-      end
-
-      local surf = rendering.open(state.visible, title, state._restore_index, cfg.float_layout, keymaps_m.make_on_select(state))
-
-      if surf then
-        keymaps_m.attach_extra(surf.bufnr, state, cfg.float_keymaps)
-      end
-    end
-
-    ---@internal
-    ---Run `body`, reporting any error the same way regardless of which
-    ---scope branch raised it -- the sync ones directly below, and the async
-    ---cwd/path one again from its own `on_done` (the outer `pcall` around
-    ---*this* call has long since returned by the time that fires).
-    ---@param body fun()
-    local function guarded(body)
-      local ok, err = pcall(body)
-      if not ok then
-        notify.error("Error: " .. tostring(err))
-        rendering.close()
-      end
-    end
-
-    guarded(function()
-      analyzer = get_analyzer(analyzer_name)
-
-      if not (state.source_bufnr and api.nvim_buf_is_valid(state.source_bufnr)) then
-        notify.warn("Source buffer is no longer valid")
-        rendering.close()
-        return
-      end
-
-      if scope == "buffer" then
-        local all, analyzer_ok
-        api.nvim_buf_call(state.source_bufnr, function()
-          all, analyzer_ok = analyzer.analyze(threshold, state.custom_aliases, state.blacklist)
-        end)
-        if analyzer_ok == false then
-          -- Only the treesitter analyzer ever reports this (the regex-based
-          -- ones have no failure mode to report). "no suggestions" and "the
-          -- analyzer couldn't run at all" (no Lua parser installed, a parse
-          -- failure, ...) must not look identical (ERR-11) -- both would
-          -- otherwise reach `finish()` as the same empty `all`.
-          notify.warn(("%s analyzer could not analyze this buffer — see :checkhealth recommender"):format(analyzer_name))
-          rendering.close()
-          return
-        end
-        finish(all)
-        return
-      end
-
-      if not project.supports_cwd(analyzer_name) then
-        notify.error(
-          ("%s scope isn't supported for analyzer %q — use one of: %s"):format(
-            scope,
-            analyzer_name,
-            NON_BUFFER_CAPABLE_ANALYZERS
-          )
-        )
-        rendering.close()
-        return
-      end
-
-      if scope == "cwd" or scope == "path" then
-        local root
-        if scope == "cwd" then
-          root = vim.fn.getcwd()
-        else
-          local bufname = api.nvim_buf_get_name(state.source_bufnr)
-          if bufname == "" then
-            notify.error("path scope requires the current buffer to have a file path")
-            rendering.close()
-            return
-          end
-          root = vim.fn.fnamemodify(bufname, ":p:h")
-        end
-
-        -- Both the directory walk (`find_files_async`) and the file reads
-        -- (`read_lines_async`) that follow are async, with a
-        -- `config.progress_style` indicator tracking the whole thing -- see
-        -- `project.lua`. The walk is usually the slower, more variable half
-        -- (a cold directory-entry cache, or per-open AV/EDR scanning on
-        -- Windows), so it gets its own indicator phase rather than only
-        -- covering the read.
-        --
-        -- A newer scan (another invocation, or an ignore/un-ignore-triggered
-        -- refresh) supersedes whatever is still running -- see the
-        -- module-level `_scan_generation` comment near the top of this file.
-        if _active_progress_handle then
-          _active_progress_handle:cancel("superseded by a new scan")
-        end
-        _scan_generation = _scan_generation + 1
-        local my_generation = _scan_generation
-
-        local handle = progress.create(cfg.progress_style)
-        _active_progress_handle = handle
-        if handle then
-          handle:update({ text = "scanning directories" })
-          -- The "float"/"kit" progress styles wire <Esc> to request_cancel();
-          -- bumping the generation here is what actually stops the walk/read
-          -- from continuing, not just what hides the indicator.
-          handle:on_cancel(function()
-            _scan_generation = _scan_generation + 1
-          end)
-        end
-
-        local function is_cancelled()
-          return my_generation ~= _scan_generation
-        end
-
-        local function start_read(paths)
-          if handle then
-            handle:update({ text = ("scanning %d files"):format(#paths), current = 0, total = #paths })
-          end
-
-          project.read_lines_async(paths, {
-            is_cancelled = is_cancelled,
-            on_progress = function(done, scanned_total)
-              if handle then
-                handle:update({
-                  text = ("%d/%d files"):format(done, scanned_total),
-                  current = done,
-                  total = scanned_total,
-                })
-              end
-            end,
-            on_done = function(lines, skipped)
-              if _active_progress_handle == handle then
-                _active_progress_handle = nil
-              end
-              if handle then
-                local finish_text = ("scanned %d files"):format(#paths)
-                if skipped and skipped > 0 then
-                  finish_text = finish_text .. (" (%d unreadable)"):format(skipped)
-                end
-                handle:finish(finish_text)
-              end
-              -- Belt-and-braces: read_lines_async already stops calling
-              -- batches (and never calls on_done at all) once is_cancelled()
-              -- turns true -- kept so a future change to that scheduling
-              -- can't silently open a float behind whatever superseded it.
-              if is_cancelled() then
-                return
-              end
-              guarded(function()
-                finish(analyzer.analyze(threshold, state.custom_aliases, state.blacklist, lines), skipped)
-              end)
-            end,
-          })
-        end
-
-        project.find_files_async(analyzer_name, root, cfg.cwd_ignore, cfg.cwd_max_files, {
-          is_cancelled = is_cancelled,
-          on_progress = function(dirs_scanned, files_found)
-            if handle then
-              handle:update({ text = ("scanning directories (%d found, %d files)"):format(dirs_scanned, files_found) })
-            end
-          end,
-          on_done = function(paths, truncated)
-            if #paths == 0 then
-              if _active_progress_handle == handle then
-                _active_progress_handle = nil
-              end
-              if handle then
-                handle:cancel("no matching files found")
-              end
-              notify.info(("No matching files found under %s"):format(root))
-              rendering.close()
-              return
-            end
-            if truncated then
-              notify.warn(("%s scan capped at %d files (config.cwd_max_files)"):format(scope, cfg.cwd_max_files))
-            end
-            start_read(paths)
-          end,
-        })
-        return
-      end
-
-      local lines, skipped
-      if scope == "cfile" then
-        local path, path_err = resolve_cfile(state.cfile_raw, state.source_bufnr)
-        if not path then
-          -- The value and the message share the call: a failure without a
-          -- message would otherwise notify `nil`.
-          notify.error(path_err or "no readable file under the cursor")
-          rendering.close()
-          return
-        end
-        lines, skipped = project.read_lines({ path })
-      else -- "line"
-        lines = { state.cursor_line_text or "" }
-      end
-
-      finish(analyzer.analyze(threshold, state.custom_aliases, state.blacklist, lines), skipped)
-    end)
+    collect(state, cfg, req)
   end
 
   vim.schedule(state.refresh)
@@ -588,6 +636,7 @@ end
 M._internal = {
   classify_pos_args = classify_pos_args,
   resolve_cfile = resolve_cfile,
+  resolve_request = resolve_request,
 }
 
 return M
