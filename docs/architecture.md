@@ -38,7 +38,7 @@ doc/
 ```
 
 Cheatsheet of all keymaps/commands/autocmds: [BINDINGS.md](BINDINGS.md).
-No open roadmap items — every previously tracked idea has shipped.
+Planned work is not tracked in this repository.
 
 ## Design principles
 
