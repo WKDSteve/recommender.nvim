@@ -68,6 +68,34 @@ return function(H)
   H.eq(statusline.status(cached_buf), "", "an edit invalidates the cache and re-analyses")
 
   -- Degradation -------------------------------------------------------------
+  -- A setup() reaches the cached count without an edit -------------------------
+  local retuned = buffer({ "local a = once.only(1)", "local b = once.only(2)", "local c = twice.more(3)" })
+  config.setup({ analyzer = "regex", threshold = 2 })
+  H.ok(statusline.status(retuned):find("1 alias suggestion ", 1, true), "threshold 2: one chain")
+  config.setup({ analyzer = "regex", threshold = 1 })
+  H.ok(statusline.status(retuned):find("2 alias suggestions", 1, true), "threshold 1: the count rises with no edit")
+  config.setup({ analyzer = "regex", threshold = 2 })
+
+  -- invalidate(0) is the current buffer, as everywhere else in the API ----------
+  do
+    local regex = require("recommender.analyzers.regex")
+    local analyze, calls = regex.analyze, 0
+    regex.analyze = function(...)
+      calls = calls + 1
+      return analyze(...)
+    end
+    vim.api.nvim_set_current_buf(retuned)
+    statusline.status()
+    local before = calls
+    statusline.status()
+    H.eq(calls, before, "cached: no second analysis")
+    statusline.invalidate(0)
+    statusline.status()
+    regex.analyze = analyze
+    H.eq(calls, before + 1, "invalidate(0) drops the current buffer's count")
+  end
+  vim.api.nvim_buf_delete(retuned, { force = true })
+
   local gone = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_delete(gone, { force = true })
   H.eq(statusline.status(gone), "", "an invalid buffer renders empty rather than erroring")

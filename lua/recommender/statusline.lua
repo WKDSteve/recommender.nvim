@@ -21,19 +21,19 @@
 ---
 --- **Caching.** The analyzer rescans the buffer, and a statusline redraws
 --- many times a second. The result is cached per buffer against
---- `nvim_buf_get_changedtick`, so it is recomputed exactly once per edit
---- and never between them.
+--- `nvim_buf_get_changedtick` and what the count depends on in the config, so
+--- it is recomputed exactly once per edit or `setup()` and never between them.
 
 local M = {}
 
----@type table<integer, { tick: integer, count: integer }>
+---@type table<integer, { tick: integer, count: integer, analyzer: string?, threshold: integer?, aliases: table?, blacklist: table? }>
 local cache = {}
 
 ---Forget a buffer's cached count.
----@param buf integer
+---@param buf integer  0 is the current buffer
 ---@return nil
 function M.invalidate(buf)
-  cache[buf] = nil
+  cache[buf == 0 and vim.api.nvim_get_current_buf() or buf] = nil
 end
 
 local cleanup_registered = false
@@ -75,12 +75,19 @@ local function suggestion_count(buf)
   end
 
   local tick = vim.api.nvim_buf_get_changedtick(buf)
+  local cfg = config.get()
   local cached = cache[buf]
-  if cached and cached.tick == tick then
+  if
+    cached
+    and cached.tick == tick
+    and cached.analyzer == cfg.analyzer
+    and cached.threshold == cfg.threshold
+    and cached.aliases == cfg.custom_aliases
+    and cached.blacklist == cfg.blacklist
+  then
     return cached.count
   end
 
-  local cfg = config.get()
   local ok_analyzer, analyzer = pcall(require, "recommender.analyzers." .. (cfg.analyzer or "regex"))
   if not ok_analyzer or type(analyzer) ~= "table" then
     return nil
@@ -98,7 +105,14 @@ local function suggestion_count(buf)
 
   local count = #suggestions
   ensure_cleanup()
-  cache[buf] = { tick = tick, count = count }
+  cache[buf] = {
+    tick = tick,
+    count = count,
+    analyzer = cfg.analyzer,
+    threshold = cfg.threshold,
+    aliases = cfg.custom_aliases,
+    blacklist = cfg.blacklist,
+  }
   return count
 end
 

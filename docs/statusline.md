@@ -54,11 +54,13 @@ the same.
 ## Caching
 
 The analyzer rescans the buffer, and a statusline redraws many times a
-second. The result is cached per buffer against `nvim_buf_get_changedtick`,
-so it is recomputed exactly once per edit and never between them. Buffers
+second. The result is cached per buffer against `nvim_buf_get_changedtick` and
+the analyzer, threshold, aliases and blacklist of the active config, so it is
+recomputed exactly once per edit or `setup()` and never between them. Buffers
 drop out of the cache on `BufDelete`/`BufWipeout`.
 
-`M.invalidate(buf)` forces a recount if you ever need one.
+`M.invalidate(buf)` forces a recount if you ever need one (`0` is the current
+buffer).
 
 ## Why this lives here
 
