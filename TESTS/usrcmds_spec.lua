@@ -106,6 +106,11 @@ return function(H)
   do
     local root = vim.fs.normalize(vim.fn.getcwd()) .. "/TESTS/.fixture_usrcmds"
     vim.fn.delete(root, "rf")
+    vim.fn.mkdir(root, "p")
+    -- Resolved, as in sessions.nvim's harness: `findfile` answers with the real path, so a
+    -- checkout reached through a link (a packaged app's redirected AppData, the snapshot
+    -- worktree of `ci commit`, a symlinked repository) would otherwise compare unequal to itself.
+    root = vim.fs.normalize(vim.uv.fs_realpath(root) or root)
     vim.fn.mkdir(root .. "/bufdir", "p")
     vim.fn.mkdir(root .. "/pathdir", "p")
     vim.fn.writefile({ "in bufdir" }, root .. "/bufdir/foo.txt")
