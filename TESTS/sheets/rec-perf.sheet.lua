@@ -2,7 +2,7 @@
 return {
   id = "rec.perf",
   title = "recommender.nvim: perf flags the four patterns, not the positional insert, and only ever inserts a comment",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

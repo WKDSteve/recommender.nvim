@@ -2,7 +2,7 @@
 return {
   id = "rec.arg-errors",
   title = "recommender.nvim: a typo is an error and runs nothing, a broken buffer is no error, a broken parser is said",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

@@ -4,7 +4,7 @@
 return {
   id = "rec.replace-signal",
   title = "recommender.nvim: with replacer's ReplacerDone the declaration follows an applied run of its own chain only",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

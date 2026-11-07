@@ -2,7 +2,7 @@
 return {
   id = "rec.replace",
   title = "recommender.nvim: -r hands :Replace the chain, the alias and %, and inserts only after a picker that changed something",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

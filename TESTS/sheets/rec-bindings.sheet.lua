@@ -2,7 +2,7 @@
 return {
   id = "rec.bindings",
   title = "recommender.nvim: the eight default keys run what their names say",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

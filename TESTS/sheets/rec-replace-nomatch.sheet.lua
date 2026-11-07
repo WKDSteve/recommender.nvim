@@ -2,7 +2,7 @@
 return {
   id = "rec.replace-nomatch",
   title = "recommender.nvim: :Replace opens no picker it knows: after 5 seconds a warning, not silence",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

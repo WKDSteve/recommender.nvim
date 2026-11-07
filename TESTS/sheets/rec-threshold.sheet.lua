@@ -2,7 +2,7 @@
 return {
   id = "rec.threshold",
   title = "recommender.nvim: positional, --threshold, -t and a count mean the same, the flag wins, order does not matter",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

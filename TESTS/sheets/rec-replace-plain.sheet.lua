@@ -2,7 +2,7 @@
 return {
   id = "rec.replace-plain",
   title = "recommender.nvim: -r without :Replace, and -r on javascript or perf, is a plain insert",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

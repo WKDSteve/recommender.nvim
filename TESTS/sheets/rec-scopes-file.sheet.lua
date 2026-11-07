@@ -2,7 +2,7 @@
 return {
   id = "rec.scopes-file",
   title = "recommender.nvim: path, cfile in the order of gf, line with threshold 1, treesitter refuses all of them",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

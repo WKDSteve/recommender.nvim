@@ -2,7 +2,7 @@
 return {
   id = "rec.float-keys-off",
   title = "recommender.nvim: float_keymaps = false: y, A, Backspace, U do nothing, j and k still move",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

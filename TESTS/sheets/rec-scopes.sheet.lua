@@ -2,7 +2,7 @@
 return {
   id = "rec.scopes",
   title = "recommender.nvim: :Recommender cwd aggregates a tree in the background, A lands in the current buffer",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

@@ -4,7 +4,7 @@
 return {
   id = "rec.scope-unreadable",
   title = "recommender.nvim: a file without read permission is said, in cfile and in a path scan",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   requires = {
     {
       lua = [[(function()

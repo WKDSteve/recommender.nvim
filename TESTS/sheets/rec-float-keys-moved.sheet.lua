@@ -2,7 +2,7 @@
 return {
   id = "rec.float-keys-moved",
   title = "recommender.nvim: float_keymaps = { yank = ... } moves the key, the help lists what is bound",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

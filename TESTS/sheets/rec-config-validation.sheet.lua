@@ -2,7 +2,7 @@
 return {
   id = "rec.config-validation",
   title = "recommender.nvim: invalid options warn in :checkhealth, fall back to the default and :Recommender still runs",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

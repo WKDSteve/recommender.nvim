@@ -3,7 +3,7 @@
 return {
   id = "rec.health",
   title = "recommender.nvim: :checkhealth names the dependencies, the parser, the layout and :Replace",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

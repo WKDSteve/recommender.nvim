@@ -3,7 +3,7 @@
 return {
   id = "rec.scope-errors",
   title = "recommender.nvim: no file name under the cursor, no such file: said, no float",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

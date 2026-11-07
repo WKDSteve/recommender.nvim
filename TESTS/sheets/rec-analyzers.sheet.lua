@@ -2,7 +2,7 @@
 return {
   id = "rec.analyzers",
   title = "recommender.nvim: treesitter skips comments and strings, javascript and python use their own declarations",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

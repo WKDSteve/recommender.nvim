@@ -2,7 +2,7 @@
 return {
   id = "rec.config-second",
   title = "recommender.nvim: a second setup() says so, applies at once, binds nothing twice and starts from the defaults",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

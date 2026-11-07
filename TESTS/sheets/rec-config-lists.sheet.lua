@@ -2,7 +2,7 @@
 return {
   id = "rec.config-lists",
   title = "recommender.nvim: a blacklist blocks by prefix, a custom alias replaces the generated name",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

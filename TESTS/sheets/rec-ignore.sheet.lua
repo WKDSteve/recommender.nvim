@@ -2,7 +2,7 @@
 return {
   id = "rec.ignore",
   title = "recommender.nvim: Backspace hides a suggestion in this buffer only, U brings it back",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

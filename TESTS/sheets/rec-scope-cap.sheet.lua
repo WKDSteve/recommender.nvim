@@ -2,7 +2,7 @@
 return {
   id = "rec.scope-cap",
   title = "recommender.nvim: more than 500 files: the scan warns and reads 500",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

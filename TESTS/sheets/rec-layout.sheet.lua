@@ -2,7 +2,7 @@
 return {
   id = "rec.layout",
   title = "recommender.nvim: compact: one line per suggestion, j and k still by suggestion",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

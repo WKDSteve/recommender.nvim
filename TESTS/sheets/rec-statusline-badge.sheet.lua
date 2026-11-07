@@ -2,7 +2,7 @@
 return {
   id = "rec.statusline-badge",
   title = "recommender.nvim: ui.nvim's recommender_badge renders empty before the plugin loads and does not pull it in",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

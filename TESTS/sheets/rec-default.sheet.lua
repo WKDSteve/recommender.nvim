@@ -3,7 +3,7 @@
 return {
   id = "rec.default",
   title = "recommender.nvim: :Recommender opens the float, j/k, Enter, A, y and the toggle",
-  task = "recommender.nvim/testblatt-bindings-checkliste",
+  task = "recommender.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")
