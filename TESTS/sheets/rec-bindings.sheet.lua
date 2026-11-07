@@ -1,0 +1,66 @@
+-- Live check: every default key, the Recommender lines of the bindings checklist and section 1 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
+return {
+  id = "rec.bindings",
+  title = "recommender.nvim: the eight default keys run what their names say",
+  task = "recommender.nvim/testblatt-bindings-checkliste",
+  steps = {
+    {
+      lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")
+      require("recommender").setup({})
+      _G.sandbox()
+      _G.open("t.lua", {
+        "local a = alpha.one(1)",
+        "local b = alpha.one(2)",
+        "local c = alpha.one(3)",
+        "-- ghost.chain",
+        "-- ghost.chain",
+        "-- ghost.chain",
+        'local s = "ghost.chain"',
+      })
+      vim.bo.filetype = "lua"
+      _G.write("x.js", { "foo.bar(1)", "foo.bar(2)", "foo.bar(3)" })
+      _G.write("x.py", { "os.path(1)", "os.path(2)", "os.path(3)" })]],
+    },
+    { keys = "<leader>lr" },
+    { wait = "_G.open_float()", note = "run" },
+    { expect = [[_G.eq(_G.shown(), "alpha.one ghost.chain")]], note = "the default analyzer" },
+    { keys = "q" },
+    { wait = "#_G.floats() == 0" },
+    { keys = "<leader>lrr" },
+    { wait = "_G.open_float()", note = "regex" },
+    { expect = [[_G.eq(_G.shown(), "alpha.one ghost.chain")]] },
+    { keys = "q" },
+    { wait = "#_G.floats() == 0" },
+    { keys = "<leader>lrt" },
+    { wait = "_G.open_float()", note = "treesitter" },
+    { expect = [[_G.eq(_G.shown(), "alpha.one")]] },
+    { keys = "q" },
+    { wait = "#_G.floats() == 0" },
+    { keys = "<leader>lrc" },
+    { wait = "_G.open_float()", timeout = 5000, note = "cwd" },
+    { expect = [[_G.has(_G.title(), "[PROJECT]")]] },
+    { keys = "q" },
+    { wait = "#_G.floats() == 0" },
+    { keys = "<leader>lR" },
+    { wait = "_G.open_float()", note = "replace" },
+    { expect = [[_G.has(_G.title(), "[REPLACE MODE]")]] },
+    { keys = "q" },
+    { wait = "#_G.floats() == 0" },
+    { lua = [[vim.cmd("edit x.js")]] },
+    { keys = "<leader>lrj" },
+    { wait = "_G.open_float()", note = "javascript" },
+    { expect = [[_G.has(_G.text(), "const bar = foo.bar;")]] },
+    { keys = "q" },
+    { wait = "#_G.floats() == 0" },
+    { lua = [[vim.cmd("edit x.py")]] },
+    { keys = "<leader>lrp" },
+    { wait = "_G.open_float()", note = "python" },
+    { expect = [[_G.has(_G.text(), "path = os.path")]] },
+    { keys = "q" },
+    { wait = "#_G.floats() == 0" },
+    { lua = [[_G.open("t.lua", _G.sample())]] },
+    { keys = "<leader>lrh" },
+    { wait = "_G.open_float()", note = "high threshold" },
+    { expect = [[_G.has(_G.title(), "2 suggestions")]], note = "regex 5" },
+  },
+}
