@@ -212,6 +212,18 @@ function _G.allow(path)
   end
 end
 
+---Whether taking the read permission away keeps this account from reading a file. For `requires`.
+---@return boolean
+function _G.can_deny()
+  local path = vim.fn.tempname()
+  vim.fn.writefile({ "probe" }, path)
+  _G.deny(path)
+  local readable = pcall(vim.fn.readfile, path)
+  _G.allow(path)
+  vim.fn.delete(path)
+  return not readable
+end
+
 ---A stand-in for replacer.nvim's `:Replace`: records its arguments and, as a real one does, opens a picker.
 ---The picker is a float whose buffer has the filetype of the Telescope prompt. `_G.apply()` makes the change the
 ---real one would make and closes it, `_G.cancel_picker()` closes it without one.
