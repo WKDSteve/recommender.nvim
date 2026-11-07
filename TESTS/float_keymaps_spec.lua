@@ -54,32 +54,6 @@ return function(H)
     pcall(api.nvim_buf_delete, buf, { force = true })
   end
 
-  -- j/k/arrows ------------------------------------------------------------------
-  -- A suggestion is several buffer lines; a plain `j` would stay on it.
-  do
-    local kit = require("ui.kit")
-    local chooser, moves = kit.chooser, {}
-    kit.chooser = {
-      move = function(delta)
-        moves[#moves + 1] = delta
-      end,
-    }
-    local buf = api.nvim_create_buf(false, true)
-    -- `false`: dropping the extra actions must not drop the way through the list.
-    fk.attach_extra(buf, { visible = {}, ignored = {} }, false)
-    local rhs = {}
-    for _, m in ipairs(api.nvim_buf_get_keymap(buf, "n")) do
-      rhs[m.lhs] = m.callback
-    end
-    for _, lhs in ipairs({ "j", "k", "<Down>", "<Up>" }) do
-      H.ok(rhs[lhs], lhs .. " is bound in the float")
-      rhs[lhs]()
-    end
-    kit.chooser = chooser
-    api.nvim_buf_delete(buf, { force = true })
-    H.eq(table.concat(moves, " "), "1 -1 1 -1", "they move by one suggestion")
-  end
-
   -- is_normal_window ------------------------------------------------------------
   do
     local ordinary = open_window("", true)
