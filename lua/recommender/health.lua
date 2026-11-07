@@ -36,7 +36,9 @@ function M.check()
     )
   end
 
-  local has_ts_lua = pcall(vim.treesitter.query.parse, "lua", "(field_expression) @field")
+  -- The node the treesitter analyzer queries: a parse of it fails without the
+  -- parser, and also when the grammar has moved on, which breaks the analyzer too.
+  local has_ts_lua = pcall(vim.treesitter.query.parse, "lua", "(dot_index_expression) @field")
   if has_ts_lua then
     vim.health.ok('Lua Tree-sitter parser found (analyzer = "treesitter" available)')
   else
