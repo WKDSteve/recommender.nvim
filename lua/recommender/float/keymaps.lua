@@ -1,11 +1,11 @@
 ---@module 'recommender.float.keymaps'
----Buffer-local keymaps for the Recommender float window. Navigation
----(j/k/arrows/mouse), <CR>-submits, and q/<Esc>-closes are handled by
----ui.kit's chooser itself now -- this
----module only builds the <CR> handler passed into `rendering.open()` and
----attaches the extra actions chooser doesn't know about (y/A/<BS>/U/?),
----which read the highlighted suggestion via `kit.chooser.current_item()`
----without submitting/closing the picker.
+---Buffer-local keymaps for the Recommender float window. The mouse,
+---<CR>-submits, and q/<Esc>-closes are handled by ui.kit's chooser itself --
+---this module builds the <CR> handler passed into `rendering.open()`, binds
+---j/k/arrows to move by suggestion (the chooser leaves them to Vim's by-line
+---motion) and attaches the extra actions chooser doesn't know about
+---(y/A/<BS>/U/?), which read the highlighted suggestion via
+---`kit.chooser.current_item()` without submitting/closing the picker.
 ---
 ---Those five are declared through `lib.nvim.bindings.keymap`'s registry, so
 ---`float_keymaps = { yank = "Y" }` moves one and `= false` drops one -- they
@@ -149,6 +149,18 @@ end
 function M.attach_extra(bufnr, state, user)
   if not bufnr or not api.nvim_buf_is_valid(bufnr) then
     return
+  end
+
+  -- A suggestion spans several buffer lines in the detailed layout, and kit's
+  -- chooser leaves these keys to Vim's own by-line motion. Bound outside the
+  -- registry below: `float_keymaps = false` drops the extra actions, not the
+  -- way through the list.
+  for lhs, delta in pairs({ j = 1, k = -1, ["<Down>"] = 1, ["<Up>"] = -1 }) do
+    vim.keymap.set("n", lhs, function()
+      for _ = 1, vim.v.count1 do
+        kit.chooser.move(delta)
+      end
+    end, { buffer = bufnr, nowait = true, silent = true, desc = "next/previous suggestion" })
   end
 
   ---@internal

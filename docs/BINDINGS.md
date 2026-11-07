@@ -92,10 +92,11 @@ actually bound, so it stays correct after a remap.
 | `q` / `<Esc>`  | Close the float |
 | `?`            | `help` — show the bound keys via `vim.notify` |
 
-Navigation moves by logical suggestion regardless of layout — 3 buffer lines
-per entry for `float_layout = "detailed"`, 1 for `"compact"` (see
-`lua/recommender/float/rendering.lua`'s `build_item`); every keymap above
-works identically either way.
+Navigation (`j`/`k`, arrows, a count works) moves by logical suggestion
+regardless of layout — 3 buffer lines per entry for `float_layout = "detailed"`,
+1 for `"compact"` (see `lua/recommender/float/rendering.lua`'s `build_item`);
+every keymap above works identically either way. These keys are not part of
+`float_keymaps`: `float_keymaps = false` leaves them bound.
 
 ## Autocommands
 
