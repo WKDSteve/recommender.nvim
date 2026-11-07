@@ -24,7 +24,14 @@ return {
     { settle = 2000 },
     { expect = "_G.open_float() and _G.eq(_G.text(_G.source), _G.before)", note = "no insert, the float open" },
     { expect = [[_G.eq(_G.shown(), "alpha.one beta.two delta.four gamma.three")]], note = "nothing ignored" },
+    -- The extra actions go, the way through the list stays: j and k are the chooser's, by suggestion.
+    { lua = [[_G.first, _G.row = _G.current(), vim.fn.line(".")]] },
     { keys = "j" },
-    { expect = [[_G.current() ~= nil]], note = "the way through the list stays" },
+    {
+      expect = [[_G.current() ~= _G.first and _G.eq(vim.fn.line("."), _G.row + 3)]],
+      note = "j: the next suggestion",
+    },
+    { keys = "k" },
+    { expect = [[_G.eq(_G.current(), _G.first) and _G.eq(vim.fn.line("."), _G.row)]], note = "k: back" },
   },
 }
