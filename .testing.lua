@@ -52,6 +52,8 @@ return {
       layout = "hosted",
       -- the steps that depend on the platform: the windows and macOS legs run only these
       platform = { "suite", "conformance" },
+      -- `testing ci land`: a check branch ci/** runs the hosted legs, main moves to a commit only once it is green there
+      land = true,
     },
     steps = {
       ["workflow-in-sync"] = { preset = "workflow-in-sync" },
