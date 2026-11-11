@@ -1,6 +1,7 @@
 -- Live check: `path`, `cfile`, `line`, and `treesitter` refusing them, section 2 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.scopes-file",
+  feature = "rec.scopes",
   title = "recommender.nvim: path, cfile in the order of gf, line with threshold 1, treesitter refuses all of them",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

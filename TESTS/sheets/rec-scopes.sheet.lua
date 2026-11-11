@@ -1,6 +1,7 @@
 -- Live check: `cwd` scope, its progress and the trap of `A`, section 2 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.scopes",
+  feature = "rec.scopes",
   title = "recommender.nvim: :Recommender cwd aggregates a tree in the background, A lands in the current buffer",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

@@ -1,6 +1,7 @@
 -- Live check: the threshold forms, section 5 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.threshold",
+  feature = "rec.threshold",
   title = "recommender.nvim: positional, --threshold, -t and a count mean the same, the flag wins, order does not matter",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

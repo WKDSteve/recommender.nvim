@@ -2,6 +2,7 @@
 -- ALL/manual-test-checklists/recommender.md and the `:Recommender` line of the bindings checklist).
 return {
   id = "rec.default",
+  feature = "rec.float",
   title = "recommender.nvim: :Recommender opens the float, j/k, Enter, A, y and the toggle",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

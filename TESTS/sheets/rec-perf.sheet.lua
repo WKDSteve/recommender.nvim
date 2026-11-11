@@ -1,6 +1,7 @@
 -- Live check: the `perf` analyzer, section 4 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.perf",
+  feature = "rec.perf",
   title = "recommender.nvim: perf flags the four patterns, not the positional insert, and only ever inserts a comment",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

@@ -1,6 +1,7 @@
 -- Live check: a `:Replace` that opens no picker, section 6 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.replace-nomatch",
+  feature = "rec.replace",
   title = "recommender.nvim: :Replace opens no picker it knows: after 5 seconds a warning, not silence",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

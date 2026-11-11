@@ -1,6 +1,7 @@
 -- Live check: blacklist and custom aliases, section 8 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.config-lists",
+  feature = "rec.blacklist-aliases",
   title = "recommender.nvim: a blacklist blocks by prefix, a custom alias replaces the generated name",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

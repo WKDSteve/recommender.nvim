@@ -1,6 +1,7 @@
 -- Live check: invalid options, section 8 and the layout fallback of section 9 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.config-validation",
+  feature = "rec.input-errors",
   title = "recommender.nvim: invalid options warn in :checkhealth, fall back to the default and :Recommender still runs",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

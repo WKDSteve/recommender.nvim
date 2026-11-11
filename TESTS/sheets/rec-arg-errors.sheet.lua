@@ -1,6 +1,7 @@
 -- Live check: wrong arguments and an analyzer that cannot run, section 3 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.arg-errors",
+  feature = "rec.input-errors",
   title = "recommender.nvim: a typo is an error and runs nothing, a broken buffer is no error, a broken parser is said",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

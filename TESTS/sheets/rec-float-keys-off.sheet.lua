@@ -1,6 +1,7 @@
 -- Live check: `float_keymaps = false`, section 10 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.float-keys-off",
+  feature = "rec.float-keys",
   title = "recommender.nvim: float_keymaps = false: y, A, Backspace, U do nothing, j and k still move",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

@@ -1,6 +1,7 @@
 -- Live check: a moved float key and the help, section 10 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.float-keys-moved",
+  feature = "rec.float-keys",
   title = "recommender.nvim: float_keymaps = { yank = ... } moves the key, the help lists what is bound",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

@@ -2,6 +2,7 @@
 -- recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.scope-errors",
+  feature = "rec.scopes",
   title = "recommender.nvim: no file name under the cursor, no such file: said, no float",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

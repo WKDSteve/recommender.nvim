@@ -1,6 +1,7 @@
 -- Live check: a misspelled action name, section 10 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.keymaps-typo",
+  feature = "rec.keymaps",
   title = "recommender.nvim: a misspelled action name in keymaps is reported",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

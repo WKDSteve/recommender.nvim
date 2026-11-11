@@ -1,6 +1,7 @@
 -- Live check: the compact layout, section 9 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.layout",
+  feature = "rec.layout",
   title = "recommender.nvim: compact: one line per suggestion, j and k still by suggestion",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

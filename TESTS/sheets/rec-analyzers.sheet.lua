@@ -1,6 +1,7 @@
 -- Live check: the analyzer override on real buffers, section 3 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.analyzers",
+  feature = "rec.analyzers",
   title = "recommender.nvim: treesitter skips comments and strings, javascript and python use their own declarations",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

@@ -1,6 +1,7 @@
 -- Live check: every default key, the Recommender lines of the bindings checklist and section 1 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.bindings",
+  feature = "rec.keymaps",
   title = "recommender.nvim: the eight default keys run what their names say",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

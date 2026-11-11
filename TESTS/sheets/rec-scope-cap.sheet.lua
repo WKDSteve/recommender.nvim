@@ -1,6 +1,7 @@
 -- Live check: the file cap of a tree scan at its default, section 2 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.scope-cap",
+  feature = "rec.scopes",
   title = "recommender.nvim: more than 500 files: the scan warns and reads 500",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

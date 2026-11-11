@@ -1,6 +1,7 @@
 -- Live check: what replace mode does without `:Replace` and for what it cannot replace, section 6 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.replace-plain",
+  feature = "rec.replace",
   title = "recommender.nvim: -r without :Replace, and -r on javascript or perf, is a plain insert",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

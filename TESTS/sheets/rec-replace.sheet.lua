@@ -1,6 +1,7 @@
 -- Live check: replace mode up to `:Replace`, with a stand-in for it, section 6 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.replace",
+  feature = "rec.replace",
   title = "recommender.nvim: -r hands :Replace the chain, the alias and %, and inserts only after a picker that changed something",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

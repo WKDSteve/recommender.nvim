@@ -1,6 +1,7 @@
 -- Live check: the statusline component, section 11 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.statusline",
+  feature = "rec.statusline",
   title = "recommender.nvim: status() counts for the active config, follows edits, is empty on nothing and on failure",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

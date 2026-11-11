@@ -3,6 +3,7 @@
 -- ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.replace-signal",
+  feature = "rec.replace",
   title = "recommender.nvim: with replacer's ReplacerDone the declaration follows an applied run of its own chain only",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

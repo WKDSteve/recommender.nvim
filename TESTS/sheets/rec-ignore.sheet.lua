@@ -1,6 +1,7 @@
 -- Live check: the per-buffer ignore list, section 7 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.ignore",
+  feature = "rec.ignore",
   title = "recommender.nvim: Backspace hides a suggestion in this buffer only, U brings it back",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

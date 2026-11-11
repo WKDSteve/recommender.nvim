@@ -1,6 +1,7 @@
 -- Live check: moving and dropping one global key, section 10 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.keymaps-custom",
+  feature = "rec.keymaps",
   title = "recommender.nvim: keymaps = { regex = ..., python = false } moves one key and drops another",
   task = "recommender.nvim/manual-checklist-run",
   steps = {

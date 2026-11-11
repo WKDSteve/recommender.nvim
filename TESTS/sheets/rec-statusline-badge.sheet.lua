@@ -1,6 +1,7 @@
 -- Live check: ui.nvim's badge before the plugin is loaded, section 11 (task recommender.nvim/testblatt-bindings-checkliste; ALL/manual-test-checklists/recommender.md).
 return {
   id = "rec.statusline-badge",
+  feature = "rec.statusline",
   title = "recommender.nvim: ui.nvim's recommender_badge renders empty before the plugin loads and does not pull it in",
   task = "recommender.nvim/manual-checklist-run",
   steps = {
