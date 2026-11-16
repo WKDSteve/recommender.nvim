@@ -104,4 +104,8 @@ recommender.nvim is released under the [MIT License](https://opensource.org/lice
 - [replacer.nvim](https://github.com/WKDSteve/replacer.nvim): The float of recommender.nvim waits for the done event of replacer.nvim. ([picture](assets/graphs/pair/recommender.nvim--replacer.nvim.png))
 - [ui.nvim](https://github.com/WKDSteve/ui.nvim): The float of recommender.nvim is built on the kit of ui.nvim: its rendering and its keymaps use `ui.kit`. ([picture](assets/graphs/pair/recommender.nvim--ui.nvim.png))
 - [lib.nvim](https://github.com/WKDSteve/lib.nvim): the shared base of the plugins.
+
+**Used by**
+
+- [ui.nvim](https://github.com/WKDSteve/ui.nvim): The statusline module `recommender_badge` of ui.nvim shows how many alias suggestions recommender.nvim has open for the buffer, once recommender.nvim is loaded. ([picture](assets/graphs/pair/ui.nvim--recommender.nvim.png))
 <!-- connections:end -->
