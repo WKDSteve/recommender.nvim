@@ -11,13 +11,15 @@
 --- not raw file text, so it is out of scope here (see `supports_cwd()`,
 --- which gates every non-buffer scope despite the name).
 ---
---- `find_files` lists matching paths with one `vim.fn.globpath()` call per
---- extension (native, not a Lua loop — fast even on a large tree, but fully
---- synchronous, and it walks into an ignored directory's whole subtree before
---- `cwd_ignore` ever gets a chance to drop it). `cwd_max_files` (see
---- `config/DEFAULTS.lua`) bounds the final list; `cwd_ignore` skips
---- directories by exact path-segment name at any depth (e.g. "node_modules",
---- ".git").
+--- `find_files` lists matching paths in one synchronous walk for all
+--- extensions (lib.nvim `collect_recursive.files_with_ext`): an ignored
+--- directory is skipped while walking, dot entries are skipped like
+--- `globpath("**")` skipped them. It used one `vim.fn.globpath()` per extension
+--- before, which walked every ignored subtree once per extension and took
+--- seconds on Windows (measured 2026-11-17: 881 ms for `**/*.lua` on lib.nvim,
+--- 63 ms for the walk). `cwd_max_files` (see `config/DEFAULTS.lua`) bounds the
+--- final list; `cwd_ignore` skips directories by exact path-segment name at any
+--- depth (e.g. "node_modules", ".git").
 ---
 --- `find_files_async` does the same job through `vim.uv.fs_scandir` instead:
 --- genuinely async (each directory read is a real libuv callback, not a
@@ -44,6 +46,7 @@
 local M = {}
 
 local globbable = require("lib.nvim.fs.globbable")
+local walker = require("lib.nvim.fs.collect_recursive")
 
 ---File extensions scanned per analyzer.
 ---@type table<string, string[]>
@@ -96,19 +99,16 @@ function M.find_files(analyzer_name, cwd, ignore, max_files)
 
   local seen = {}
   local paths = {}
-  -- Glob reads its argument as a pattern, so an 8.3 short root ("~1") is read
-  -- as a home-directory reference and matches nothing at all -- silently, with
-  -- the pcall below none the wiser. See lib.nvim.fs.globbable.
+  -- The long spelling of an 8.3 short root ("~1"), as globpath needed it: the
+  -- paths keep the spelling they had (lib.nvim.fs.globbable).
   cwd = globbable(cwd)
-  for _, ext in ipairs(exts) do
-    local ok, matches = pcall(vim.fn.globpath, cwd, "**/*." .. ext, false, true)
-    if ok and type(matches) == "table" then
-      for _, p in ipairs(matches) do
-        if not seen[p] and not is_ignored(p, ignore) then
-          seen[p] = true
-          paths[#paths + 1] = p
-        end
-      end
+  -- One walk for every extension; `ignore` names are skipped while walking (only them: no default list,
+  -- as globpath skipped nothing by itself), dot entries like globpath did.
+  local matches = walker.files_with_ext(cwd, exts, { dirs = ignore or {}, hidden = false })
+  for _, p in ipairs(matches) do
+    if not seen[p] and not is_ignored(p, ignore) then
+      seen[p] = true
+      paths[#paths + 1] = p
     end
   end
 
